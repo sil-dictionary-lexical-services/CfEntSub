@@ -1,15 +1,18 @@
 #!/usr/bin/env perl
 my $USAGE = "Usage: $0 [--inifile inifile.ini] [--section section] [--recmark lx] [--eolrep #] [--reptag __hash__] [--debug] [file.sfm]\n";
 =pod
-This script is a stub that provides the code for opl'ing and de_opl'ing an input file
-It also includes code to:
-	- use an ini file (commented out)
-	- process command line options including debugging
+This script processes an SFM lexical file to display all entries and subentries in a format that makes it easy to compare them.
 
 The ini file should have sections with syntax like this:
-[section]
-Param1=Value1
-Param2=Value2
+[CfEntSub]
+RecordMarker=lx
+SubentryMarkers=se
+Label1=LEX:
+Fields1=lx,se
+Label2=POS:
+Fields2=ps
+Label3=DEF:
+Fields3=de
 
 =cut
 use 5.020;
@@ -28,7 +31,7 @@ my $scriptname = fileparse($0, qr/\.[^.]*/); # script name without the .pl
 use Getopt::Long;
 GetOptions (
 	'inifile:s'   => \(my $inifilename = "$scriptname.ini"), # ini filename
-	'section:s'   => \(my $inisection = "section"), # section of ini file to use
+	'section:s'   => \(my $inisection = "CfEntSub"), # section of ini file to use
 # additional options go here.
 # 'sampleoption:s' => \(my $sampleoption = "optiondefault"),
 	'recmark:s' => \(my $recmark = "lx"), # record marker, default lx
@@ -42,20 +45,40 @@ GetOptions (
 	) or die $USAGE;
 
 # check your options and assign their information to variables here
-$recmark =~ s/[\\ ]//g; # no backslashes or spaces in record marker
+$recmark = clean_marks($recmark); # no backslashes or spaces in record marker
 
-# if you do not need a config file ucomment the following and modify it for the initialization you need.
-# if you have set the $inifilename & $inisection in the options, you only need to set the parameter variables according to the parameter names
-# =pod
 use Config::Tiny;
 my $config = Config::Tiny->read($inifilename, 'crlf');
 die "Quitting: couldn't find the INI file $inifilename\n$USAGE\n" if !$config;
-my $param1 = $config->{"$inisection"}->{Param1};
-say STDERR "Param1:$param1" if $debug;
-my $param2 = $config->{"$inisection"}->{Param2};
-say STDERR "Param2:$param2" if $debug;
+
+$recmark = $config->{"$inisection"}->{RecordMarker} if $config->{"$inisection"}->{RecordMarker};
+my $semarks = "se";
+$semarks = $config->{"$inisection"}->{SubentryMarkers} if $config->{"$inisection"}->{SubentryMarkers};
+$semarks=clean_marks($semarks);
+my $srchSEmarks = qr/$semarks/;
+my @labels_ary;
+my @fields_ary;
+my $allfields;
+for (1..10) {
+	my $lstring="Label$_";
+	my $fstring="Fields$_";
+	last if ! $config->{"$inisection"}->{$lstring};
+	last if ! $config->{"$inisection"}->{$fstring};
+	$labels_ary[$_] = $config->{"$inisection"}->{$lstring};
+	$fields_ary[$_] = clean_marks($config->{"$inisection"}->{$fstring});
+	$allfields = $allfields . $fields_ary[$_] . "|";
+	}
+$allfields =~ s/\|$//;
 # =cut
 
+say STDERR "Record marker:$recmark" if $debug;
+say STDERR "Subentry marker:$semarks" if $debug;
+say STDERR "Filter on:$allfields" if $debug;
+say STDERR "Label:", Dumper @labels_ary if $debug;
+say STDERR "Fields:", Dumper  @fields_ary if $debug;
+
+
+die;
 # generate array of the input file with one SFM record per line (opl)
 my @opledfile_in;
 my $line = ""; # accumulated SFM record
@@ -85,3 +108,15 @@ say STDERR "oplline:", Dumper($oplline) if $debug;
 		print;
 		}
 	}
+
+sub clean_marks {
+# converts an SFM list into a search string
+my ($marks) = @_;
+for ($marks) {
+	s/\\//g;
+	s/ //g;
+	s/\,*$//; # no trailing commas
+	s/\,/\|/g;  # use bars for or'ing
+	}
+return $marks;
+}
