@@ -55,10 +55,9 @@ $recmark = $config->{"$inisection"}->{RecordMarker} if $config->{"$inisection"}-
 my $semarks = "se";
 $semarks = $config->{"$inisection"}->{SubentryMarkers} if $config->{"$inisection"}->{SubentryMarkers};
 $semarks=clean_marks($semarks);
-my $srchSEmarks = qr/$semarks/;
 my @labels_ary;
 my @fields_ary;
-my $allfields;
+my $allfields = "";
 for (1..10) {
 	my $lstring="Label$_";
 	my $fstring="Fields$_";
@@ -77,17 +76,15 @@ say STDERR "Filter on:$allfields" if $debug;
 say STDERR "Label:", Dumper @labels_ary if $debug;
 say STDERR "Fields:", Dumper  @fields_ary if $debug;
 
-
-die;
 # generate array of the input file with one SFM record per line (opl)
 my @opledfile_in;
 my $line = ""; # accumulated SFM record
 while (<>) {
+	next if ! m/\\($allfields) /;
 	s/\R//g; # chomp that doesn't care about Linux & Windows
-	#perhaps s/\R*$//; if we want to leave in \r characters in the middle of a line
 	s/$eolrep/$reptag/g;
 	$_ .= "$eolrep";
-	if (/^\\$recmark /) {
+	if (/^\\($recmark|$semarks) /) {
 		$line =~ s/$eolrep$/\n/;
 		push @opledfile_in, $line;
 		$line = $_;
@@ -95,20 +92,25 @@ while (<>) {
 	else { $line .= $_ }
 	}
 push @opledfile_in, $line;
+say STDERR @opledfile_in if $debug;
 
-for my $oplline (@opledfile_in) {
-# Insert code here to perform on each opl'ed line.
-# Note that a next command will prevent the line from printing
-
-say STDERR "oplline:", Dumper($oplline) if $debug;
-#de_opl this line
-	for ($oplline) {
-		s/$eolrep/\n/g;
-		s/$reptag/$eolrep/g;
-		print;
+# h/t Perl cookbook 4.6 for uniue with count
+my %count =();
+foreach my $item (@opledfile_in) {
+	next if ! $item;
+	$item =~ s/(($eolrep)+|\n)$//;
+	for (1..10) {
+		last if ! $labels_ary[$_];
+		my $markers = $fields_ary[$_];
+		my $label = $labels_ary[$_];
+		$item =~ s/\\($markers) /$label/g;
 		}
+	$count{$item}++;
 	}
-
+say STDERR "count:", Dumper (\%count) if $debug;
+for my $item (sort keys %count) {
+	say "     $count{$item} " , $item;
+	}
 sub clean_marks {
 # converts an SFM list into a search string
 my ($marks) = @_;
