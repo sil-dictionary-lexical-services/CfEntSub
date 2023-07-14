@@ -45,13 +45,13 @@ GetOptions (
 	) or die $USAGE;
 
 # check your options and assign their information to variables here
-$recmark = clean_marks($recmark); # no backslashes or spaces in record marker
 
 use Config::Tiny;
 my $config = Config::Tiny->read($inifilename, 'crlf');
 die "Quitting: couldn't find the INI file $inifilename\n$USAGE\n" if !$config;
 
 $recmark = $config->{"$inisection"}->{RecordMarker} if $config->{"$inisection"}->{RecordMarker};
+$recmark = clean_marks($recmark); # no backslashes or spaces in record marker
 my $semarks = "se";
 $semarks = $config->{"$inisection"}->{SubentryMarkers} if $config->{"$inisection"}->{SubentryMarkers};
 $semarks=clean_marks($semarks);
