@@ -94,7 +94,7 @@ while (<>) {
 push @opledfile_in, $line;
 say STDERR @opledfile_in if $debug;
 
-# h/t Perl cookbook 4.6 for uniue with count
+# h/t Perl cookbook 4.6 for unique with count
 my %count =();
 foreach my $item (@opledfile_in) {
 	next if ! $item;

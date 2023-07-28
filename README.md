@@ -27,7 +27,7 @@ The complex form *a̱mapowa*, 'to read' has components *a̱maꞌ*, 'paper' and *
 
 When the *CfEntSub.pl* script processes *Example/nhx-extract.sfm*, with the requisite options and the *nhx.ini* file, like this:
 ````bash
- ./CfEntSub.pl --inifile Example/nhx.ini Example/nhx-exract.sfm > Example/EntsSubs.txt
+ ./CfEntSub.pl --inifile Example/nhx.ini Example/nhx-extract.sfm > Example/EntsSubs.txt
 ````
  It produces:
 ````text
